@@ -1,5 +1,7 @@
 package sn.ism.gestiondettes.data.services;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import sn.ism.gestiondettes.data.entities.Client;
 import sn.ism.gestiondettes.data.entities.Dette;
 import sn.ism.gestiondettes.data.repositories.DetteRepository;
@@ -7,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +37,10 @@ public class DetteService {
         return detteRepository.findByClientIdOrderByDateDesc(clientId);
     }
 
+    public Page<Dette> getDettesByClientIdWithPagination(Long clientId, String telephone, Pageable pageable) {
+        return detteRepository.findByClientIdWithTelephoneFilter(clientId, telephone, pageable);
+    }
+
     public List<Dette> getDettesNonSoldees() {
         return detteRepository.findDettesNonSoldees();
     }
@@ -47,8 +54,23 @@ public class DetteService {
                 .orElseThrow(() -> new RuntimeException("Client non trouvé avec l'id: " + clientId));
 
         dette.setClient(client);
-        // Le montant restant sera calculé automatiquement par @PrePersist
+        dette.setMontantPaye(BigDecimal.ZERO);
+        dette.setMontantRestant(dette.getMontantDette());
+
         return detteRepository.save(dette);
+    }
+
+    public List<Dette> createMultipleDettes(Long clientId, List<Dette> dettes) {
+        Client client = clientService.getClientById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client non trouvé avec l'id: " + clientId));
+
+        dettes.forEach(dette -> {
+            dette.setClient(client);
+            dette.setMontantPaye(BigDecimal.ZERO);
+            dette.setMontantRestant(dette.getMontantDette());
+        });
+
+        return detteRepository.saveAll(dettes);
     }
 
     public Dette updateDette(Long id, Dette detteDetails) {
@@ -58,6 +80,9 @@ public class DetteService {
         dette.setDate(detteDetails.getDate());
         dette.setMontantDette(detteDetails.getMontantDette());
 
+        // Recalculer le montant restant
+        dette.setMontantRestant(dette.getMontantDette().subtract(dette.getMontantPaye()));
+
         return detteRepository.save(dette);
     }
 
@@ -65,9 +90,5 @@ public class DetteService {
         Dette dette = detteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Dette non trouvée avec l'id: " + id));
         detteRepository.delete(dette);
-    }
-
-    public boolean existsById(Long id) {
-        return detteRepository.existsById(id);
     }
 }

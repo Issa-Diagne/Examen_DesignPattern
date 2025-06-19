@@ -1,5 +1,7 @@
 package sn.ism.gestiondettes.data.services;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import sn.ism.gestiondettes.data.entities.Dette;
 import sn.ism.gestiondettes.data.entities.Paiement;
 import sn.ism.gestiondettes.data.repositories.PaiementRepository;
@@ -33,6 +35,10 @@ public class PaiementService {
 
     public List<Paiement> getPaiementsByClientId(Long clientId) {
         return paiementRepository.findByClientId(clientId);
+    }
+
+    public Page<Paiement> getPaiementsByDetteIdWithPagination(Long detteId, String telephone, Long numerodette, Pageable pageable) {
+        return paiementRepository.findByDetteIdWithFilters(detteId, telephone, numerodette, pageable);
     }
 
     public Paiement createPaiement(Long detteId, Paiement paiement) {

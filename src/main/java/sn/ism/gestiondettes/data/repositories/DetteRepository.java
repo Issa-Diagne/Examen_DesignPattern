@@ -1,6 +1,8 @@
 package sn.ism.gestiondettes.data.repositories;
 
 import sn.ism.gestiondettes.data.entities.Dette;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,4 +27,12 @@ public interface DetteRepository extends JpaRepository<Dette, Long> {
 
     @Query("SELECT d FROM Dette d WHERE d.client.id = :clientId AND d.montantRestant > 0")
     List<Dette> findDettesNonSoldeesByClientId(@Param("clientId") Long clientId);
+
+    // Nouvelle méthode pour la pagination avec filtre par téléphone
+    @Query("SELECT d FROM Dette d WHERE d.client.id = :clientId " +
+            "AND (:telephone IS NULL OR d.client.telephone LIKE %:telephone%) " +
+            "ORDER BY d.date DESC")
+    Page<Dette> findByClientIdWithTelephoneFilter(@Param("clientId") Long clientId,
+                                                  @Param("telephone") String telephone,
+                                                  Pageable pageable);
 }
